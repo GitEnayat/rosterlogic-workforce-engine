@@ -479,10 +479,11 @@ function getMockContext() {
 - **Fixed weekly patterns only** (Mon-Fri, Sat-Sun off)
 
 ### Planned Extensions
-- **Rotating rosters** (4-on/4-off, Panama schedules)
-- **Overtime rule calculations** (1.5x, 2.0x multipliers)
-- **Break time compliance** (11-hour rest rules)
-- **Financial values** ($ pay calculations)
+- Rotating rosters (4-on/4-off, Panama schedules)
+- Region-specific holiday calendars
+- Multiple entitlement types (TOIL, banked overtime, lieu days)
+- Rule versioning and policy audit history
+
 
 ### Portability
 The core resolver (`Engine/Resolver.js`) is platform-agnostic:
