@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚙️ Workforce Decision Engine
+# ⚙️ Rosterlogic/ Workforce Engine
 
 **A rule-based scheduling and entitlement engine for distributed workforce operations.**
 
