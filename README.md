@@ -53,6 +53,22 @@ Any industry with shift-based work and complex entitlement rules can use this en
 
 ---
 
+## 🧩 The Workforce Tech Ecosystem
+
+It is important to clarify where this project sits in the HR technology stack.
+
+- **This is NOT:** A full-stack employee application (e.g., mobile app, leave portal, shift bidding UI).
+- **This IS:** The **decision & policy engine** that sits behind those interfaces.
+
+Many workforce products focus heavily on UI, forms, and data storage, yet still require a robust logic layer to determine outcomes. This project focuses entirely on that layer: **policy modelling, rule resolution, and scheduling mathematics.**
+
+By separating policy logic from application code, organisations gain:
+1. **Agility:** HR policies change faster than software release cycles.
+2. **Auditability:** Every decision is traced and logged, independent of the UI.
+3. **Consistency:** The same rules apply whether the request comes from a mobile app, a web portal, or a manager's spreadsheet.
+
+---
+
 ## 📐 Core Concepts & Terminology
 
 To understand how the engine makes decisions, it helps to know the WFM concepts it models.
