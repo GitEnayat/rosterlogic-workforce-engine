@@ -392,10 +392,10 @@ This project was designed based on real-world Workforce Planning & Scheduling ex
 If you are an organisation looking to implement or adapt this engine for your workflow, feel free to reach out to discuss your requirements.
 
 📧 enayatulla135@gmail.com  
-💼 https://www.linkedin.com/in/enayatullahhassani/
+Linkedin: Check my profile for more details
 
 ---
 
 ## License
 
-MIT © Enayatulah Hassani
+MIT © Enayatulah
