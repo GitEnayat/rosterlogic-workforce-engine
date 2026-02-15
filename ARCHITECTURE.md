@@ -1,32 +1,31 @@
 # System Architecture
 
-
 ## System Overview
 
-The Workforce Decision Engine is a rule-based scheduling and entitlement resolution system built for Google Apps Script. It processes employee schedules across multiple workspaces, applying business rules to determine final work status and manage entitlement balances.
+The Workforce Decision Engine is a rule-based scheduling and entitlement resolution system built for Google Apps Script. It treats the schedule as a state machine where every day must resolve to a single, valid final state.
 
 ### Core Design Principles
 
-1. **Decision Matrix Over Code** - Business logic lives in structured lookup tables
-2. **Dual-Pass Resolution** - State-changing rules resolve before attribute-changing rules
-3. **Deterministic Outcomes** - Priority-based resolution with tiebreakers eliminates ambiguity
-4. **Auditability** - Every decision includes a full trace of evaluated rules
-5. **Safety First** - Dry-run mode, idempotent writes, and schema validation
+1.  **Decision Matrix Over Code** - Business logic lives in structured lookup tables, not nested if-statements.
+2.  **Dual-Pass Resolution** - State-changing rules resolve before attribute-changing rules to prevent circular dependencies.
+3.  **Deterministic Outcomes** - Priority-based resolution with tiebreakers eliminates ambiguity.
+4.  **Auditability** - Every decision includes a full trace of evaluated rules.
+5.  **Safety First** - Idempotent writes and schema validation protect against data corruption.
 
----- 
+---
+
 ## Google Apps Script Module Model
 
-Google Apps Script uses a flat global namespace rather than a traditional module system.  
+Google Apps Script uses a flat global namespace rather than a traditional module system.
 All functions in this project share the same runtime scope.
 
 To maintain testability and clarity:
 
-• Pure functions are isolated where possible (e.g. Resolver)
-• External services (SpreadsheetApp) are confined to orchestration layers
-• A mock Test Harness replicates spreadsheet inputs for unit testing
+*   Pure functions are isolated where possible (e.g. Resolver)
+*   External services (SpreadsheetApp) are confined to orchestration layers
+*   A mock Test Harness replicates spreadsheet inputs for unit testing
 
 This document serves as the explicit dependency map for the system.
-
 
 ---
 
@@ -57,97 +56,84 @@ This document serves as the explicit dependency map for the system.
 ### Module Responsibilities
 
 #### 1. **Config.js** (Immutable Configuration)
-- Centralized, deep-frozen configuration object
-- Sheet names, column mappings, validation rules
-- Prevents runtime mutation bugs
+- Centralized, deep-frozen configuration object.
+- Defines sheet names, column mappings, and validation rules.
+- Prevents runtime mutation bugs.
 
 #### 2. **Engine/Resolver.js** (Core Logic)
 - **Primary Function**: `resolveEmployeeDay()`
 - Implements dual-pass rule resolution:
-  - **Pass 1**: DAY_PATTERN rules (state-changing)
-  - **Pass 2**: SHIFT_OVERRIDE rules (attribute-changing)
-- Decision matrix lookup with O(1) composite key indexing
-- Returns: final status, shift, value, trace, entitlement action
+    - **Pass 1**: `DAY_PATTERN` rules (State-changing: Work vs Off)
+    - **Pass 2**: `SHIFT_OVERRIDE` rules (Attribute-changing: Time)
+- Decision matrix lookup with O(1) composite key indexing.
+- Returns: final status, shift, value, trace, entitlement action.
 
 #### 3. **Engine/Rules.js** (Rule Parser)
-- Parses schedule rules from central database
-- Sorts by priority hierarchy
-- Validates rule inputs (sanitation checks)
+- Parses schedule rules from central database.
+- Sorts by priority hierarchy.
+- Validates rule inputs (sanitation checks).
 
 #### 4. **Engine/WorkspaceProcessor.js** (Orchestration)
-- `getActiveWorkspaces()`: Retrieves active workspace IDs
-- `processRoster()`: Parses roster sheets and aggregates results
-- `processWorkspace()`: Main workspace processing pipeline
+- `getActiveWorkspaces()`: Retrieves active workspace IDs.
+- `processRoster()`: Parses roster sheets and aggregates results.
+- `processWorkspace()`: Iterates through active workspaces and processes rosters.
 
 #### 5. **Engine/Ledger.js** (Entitlement Management)
-- Grant new entitlements (with duplicate checking)
-- Revoke stale entitlements (column-scoped writes)
-- Idempotent operations to prevent double-counting
+- Grant new entitlements (with duplicate checking).
+- Revoke stale entitlements (column-scoped writes).
+- Idempotent operations to prevent double-counting.
 
 #### 6. **Utils/Helpers.js** (Utilities)
-- Date handling and parsing
-- Header mapping (`mapHeaders()`)
-- Output writing utilities
+- Date handling and parsing.
+- Header mapping (`mapHeaders()`).
+- Output writing utilities.
 
 #### 7. **Utils/Logger.js** (Logging)
-- Buffered logging system (in-memory accumulation)
-- Batch flush to System_Logs sheet
-- Reduces API calls by ~40%
+- Buffered logging system (in-memory accumulation).
+- Batch flush to System_Logs sheet.
+- Reduces API calls by ~40%.
 
-#### 8. **Utils/Validation.js** (Pre-flight Checks)
-- Schema validation before processing
-- Data type checking
-- Required field validation
+#### 8. **Utils/SchemaValidator.js** (Header Drift Detection)
+- Validates column headers against CONFIG.
+- Detects renamed, moved, or deleted columns.
+- Fails fast with actionable diagnostics.
 
-#### 9. **Utils/SchemaValidator.js** (Header Drift Detection)
-- Validates column headers against CONFIG
-- Detects renamed, moved, or deleted columns
-- Fails fast with actionable diagnostics
+#### 9. **Utils/Validation.js** (Pre-flight Checks)
+- Schema validation before processing.
+- Data type checking.
+- Required field validation.
 
 ---
 
 ## Data Flow
 
 ### Phase 1: Context Loading (One-Time)
+The engine loads the "World State" once to minimize read operations.
 
-```
-Central Database
-├── Schedule_Rules → Parsed & Sorted by Priority
-├── Decision_Matrix → Indexed Map<composite_key, Array<rows>>
-├── Entitlement_Ledger → Active records only
-├── Leave_Data → Map<employee|date, leave_type>
-├── Holidays → Set<date_strings>
-└── Shift_Status_Mapping → Map<shift_code, status>
-```
+- **Schedule_Rules**: Parsed & Sorted by Priority
+- **Decision_Matrix**: Indexed Map<composite_key, Array<rows>>
+- **Entitlement_Ledger**: Active records only
+- **Leave_Data**: Map<employee|date, leave_type>
+- **Holidays**: Set<date_strings>
+- **Shift_Status_Mapping**: Map<shift_code, status>
 
 **Indexing Strategy**: The decision matrix is pre-indexed using composite keys:
 ```javascript
 key = `${baseFlag}|${ruleFlag}|${holidayFlag}|${reqFlag}`
 // Example: "WORK|NONE|TRUE|LEAVE"
 ```
-
 This enables O(1) lookups during resolution instead of O(n) scans.
 
 ### Phase 2: Per-Workspace Processing
-
-```
-For Each Workspace:
-1. Validate Schema (header drift check)
-2. Read Roster Data (batch read)
-3. For Each Employee × Date:
-   a. Determine base schedule (shift + off-days)
-   b. Apply Pass 1: DAY_PATTERN rules (highest priority wins)
-   c. Apply Pass 2: SHIFT_OVERRIDE rules (if work day)
-   d. Lookup Decision Matrix → final status, shift, value
-   e. Run audit verification (mirror check)
-   f. Collect entitlement actions
-4. Write Daily_Workforce_Status (batch write)
-5. Grant new entitlements (duplicate check)
-6. Revoke stale entitlements (column-scoped writes)
-```
+For each employee x date cell:
+1.  Determine base schedule (shift + off-days).
+2.  **Pass 1**: Apply `DAY_PATTERN` rules (State).
+3.  **Pass 2**: Apply `SHIFT_OVERRIDE` rules (Attributes).
+4.  Lookup **Decision Matrix** → final status, shift, value.
+5.  Collect entitlement actions (GRANT / REVOKE).
+6.  Batch write results and flush ledger updates.
 
 ### Phase 3: Completion
-
 - Flush all buffered logs
 - Log execution duration
 - Toast notification to user
@@ -200,7 +186,7 @@ rules
   .filter(r => r.type === type)
   .reduce((prev, curr) => {
     if (curr.prio > prev.prio) return curr;           // Higher priority wins
-    if (curr.prio === prev.prio && 
+    if (curr.prio === prev.prio &&
         curr.id.localeCompare(prev.id) > 0) return curr; // Tie: Higher ID wins
     return prev;
   }, { prio: -1, id: '' });

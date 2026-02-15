@@ -8,7 +8,7 @@ Decision-matrix architecture · Dual-pass rule resolution · Multi-workspace orc
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Google Apps Script](https://img.shields.io/badge/Platform-Google%20Apps%20Script-4285F4.svg)](https://developers.google.com/apps-script)
-[![Status: Production](https://img.shields.io/badge/Status-Production-green.svg)]()
+[![Status: Operational](https://img.shields.io/badge/Status-Production-green.svg)]()
 [![Tests: Passing](https://img.shields.io/badge/Tests-Passing-green.svg)]()
 [![Documentation: 100%](https://img.shields.io/badge/JSDoc-100%25-blue.svg)]()
 
@@ -18,11 +18,13 @@ Decision-matrix architecture · Dual-pass rule resolution · Multi-workspace orc
 
 ## Why This Exists
 
-Managing schedules for a distributed workforce is deceptively complex. A single missed rule can cascade into incorrect pay, wrong shifts, or broken entitlement balances — problems that are hard to detect and expensive to fix.
+Distributed workforce scheduling is a consensus problem: you must reconcile the base roster against a volatile layer of exceptions—leave requests, public holidays, and ad-hoc rule overrides. A single missed rule cascades into incorrect pay, wrong shifts, and broken entitlement balances.
 
-**This project was created from hands-on Workforce Planning & Scheduling experience to automate real rostering workflows.** It serves as a reference implementation for rule-driven scheduling using Google Apps Script.
+Most systems fail here because they try to solve this with linear logic (IF this THEN that). That approach collapses when rules compete—e.g., does a "Public Holiday" override a "Work Pattern," or does the specific "Overtime Request" override both?
 
-Consider the real-world inputs the system must reconcile for **every employee, on every day**:
+**This project solves the combinatorial state problem.** It serves as a reference implementation for rule-driven scheduling using Google Apps Script, replacing ad-hoc spreadsheets with a single deterministic pipeline.
+
+Consider the inputs the system must reconcile for **every employee, on every day**:
 
 - Shift patterns that change by employee, date range, and day of week
 - Public holidays that convert work days into paid off-days
@@ -30,18 +32,16 @@ Consider the real-world inputs the system must reconcile for **every employee, o
 - Compensatory day accrual and consumption with audit requirements
 - Multiple workspace files, each containing independent rosters
 
-This is a combinatorial problem. No manual process, formula grid, or ad-hoc script can solve it reliably at scale.
-
-**The Workforce Decision Engine replaces all of that with a single deterministic pipeline.** Business logic lives in a decision matrix — a structured lookup table that non-engineers can read and modify. A priority-based rule resolver applies that logic across every workspace, and writes auditable results with full trace information.
+**The Workforce Decision Engine replaces all manual reconciliation.** Business logic lives in a decision matrix — a structured lookup table that non-engineers can read and modify. A priority-based rule resolver applies that logic across every workspace, and writes auditable results with full trace information.
 
 > [!NOTE]
 > This system runs entirely within **Google Apps Script** (serverless) and interacts directly with Google Sheets. No external servers, databases, or infrastructure are required.
 
 ---
 
-## 🏗️ Built for the Real World
+## 🏗️ Built for Operational Reality
 
-This project was designed by a Workforce Management (WFM) professional to solve the specific frustrations of scheduling distributed teams. It moves beyond simple "roster filling" to handle the complex intersection of **HR policy** and **operational reality**.
+This project was designed by a Workforce Management (WFM) professional to solve specific edge cases in scheduling distributed teams. It moves beyond simple "roster filling" to handle the intersection of **HR policy** and **operational reality**.
 
 While the included policies (in `docs/sample_data`) are generalised examples, the architecture is deliberately **policy-agnostic** and can be adapted for:
 - **Retail:** Managing store rosters, peak-season casuals, and overtime rules.
@@ -161,7 +161,7 @@ It is critical to understand what this system does and *does not* do.
 
 ```
 src/
-├── Code.js                    # Entry point — orchestrates the full pipeline
+├── Code.js                    # Entry point — orchestrates the execution flow
 ├── Config.js                  # Centralised, deep-frozen configuration object
 ├── Engine/
 │   ├── Resolver.js            # Core decision logic — dual-pass resolution + matrix lookup
@@ -373,7 +373,7 @@ The project includes a server-side **unit test harness** that mocks the Google S
 
 The rules and decision matrix included in this repository (under `docs/sample_data/`) are **generalised examples** designed to demonstrate the engine's capabilities. They are not intended to be used as-is.
 
-Every organisation has unique enterprise agreements, shift structures, and entitlement policies. To deploy this engine in production, you should adapt the `Decision_Matrix` and `Schedule_Rules` sheets to reflect your specific HR rules. **The engine is deliberately policy-agnostic** — it executes whatever logic your configuration sheets define.
+To deploy this engine in production, you should adapt the `Decision_Matrix` and `Schedule_Rules` sheets to reflect your specific HR rules. **The engine is deliberately policy-agnostic** — it executes whatever logic your configuration sheets define.
 
 ### Beyond Google Sheets
 
