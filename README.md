@@ -372,10 +372,14 @@ The surrounding I/O layer (reading sheets, writing results, logging) would need 
 
 ### Need Help Adapting This?
 
-If you are an organisation looking to implement this engine for your workforce, feel free to reach out to discuss adapting the decision matrix and rule configuration to your specific needs. [Get in touch →](mailto:)
+This project was designed based on real-world Workforce Planning & Scheduling experience.  
+If you are an organisation looking to implement or adapt this engine for your workflow, feel free to reach out to discuss your requirements.
+
+📧 enayatulla135@gmail.com  
+💼 https://www.linkedin.com/in/enayatullahhassani/
 
 ---
 
 ## License
 
-[MIT](LICENSE)
+MIT © Enayatulah Hassani
